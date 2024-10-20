@@ -195,79 +195,83 @@ def create_book(book_code):
         if "Fundamentals" in chapter_ranges:
             del chapter_ranges["Fundamentals"]
 
-        print(chapter_ranges)
+        # Calculate the range for "Fundamentals"
+        fundamentals_range = f"0-{int((list(chapter_ranges.values())[0].split('-')[0]))-1}"
 
-        # {'Unidad 1': '7-26', 'Unidad 2': '27-46', 'Unidad 3': '47-66', 
-        #  'Unidad 4': '67-86', 'Unidad 5': '87-106', 'Unidad 6': '107-127', 
-        #  'Unidad 7': '128-146', 'Unidad 8': '147-165', 'Lecturas de comprensión': '166'}
+        # Create a new dictionary with "Fundamentals" as the first entry
+        chapter_ranges = {"Fundamentals": fundamentals_range, **chapter_ranges}
 
-        # { "Fundamentals": '0-6',
-        #     'Unidad 1': '7-26', 'Unidad 2': '27-46', 'Unidad 3': '47-66', 
-        #  'Unidad 4': '67-86', 'Unidad 5': '87-106', 'Unidad 6': '107-127',
-        #   'Unidad 7': '128-146', 'Unidad 8': '147-165', 
-        #   'Lecturas de comprensión': '166-178'}
+        libro_maestro , libro_alumno= [], []
+
+        for page in config_book_data["pages"]:
+            # print(page["URL"])
+            if "_lm_" in page["URL"]:
+                if ''.join(filter(str.isdigit, page["URL"][:-4].split("_")[-1])):
+                    libro_maestro.append(''.join(filter(str.isdigit, page["URL"][:-4].split("_")[-1])))
+
+            elif "_la_" in page["URL"]:
+                if ''.join(filter(str.isdigit, page["URL"][:-4].split("_")[-1])):
+                    libro_alumno.append(''.join(filter(str.isdigit, page["URL"][:-4].split("_")[-1])))
+        
+        
+        if book_content_type == "Libro del Alumno":
+
+            chapter_ranges["Lecturas de comprensión"] = f"{chapter_ranges['Lecturas de comprensión']}-{libro_alumno[-1]}"
+
+        elif book_content_type == "Libro del Maestro":
+            chapter_ranges["Lecturas de comprensión"] = f"{chapter_ranges['Lecturas de comprensión']}-{libro_maestro[-1]}"
+
+        # print(libro_alumno)
+        # print(json.dumps(book_data, indent=4)) 
+        
+        chapter_index = 0
+        break_loop = False
 
         for dat in config_book_data["pages"]:
-            if dat["URL"].endswith(".jpg") and dat["URL"].startswith(prefix):
-                # Retrieve chapter bounds using chapter_ranges dictionary
+            if dat["URL"].strip().endswith("jpg") and dat["URL"].startswith(prefix):
+                page_number = dat["URL"][:-4].split("_")[-1]
+                page_number = int(''.join(filter(str.isdigit, page_number))) if page_number != "portada" else 0
                 
-                if not chapter_read:
-                    if book_content_type in ["Libro del Alumno"]:  #, "Libro del Maestro"
-                        
-                        chapter_name = f"Unidad {chapter_index}"
-                    else:
-                        chapter_name = f"Chapter {chapter_index}"
-                    try:
-                        from_chapter, to_chapter = map(int, chapter_ranges[chapter_name].split("-"))
-                        
-                    except KeyError:
-                        break
+                if page_number == int(list(chapter_ranges.values())[-1].split("-")[1]):
+                    break_loop = True
 
-                    chapter_read = True
+                chapter_name = list(chapter_ranges.keys())[chapter_index]
                 
-                try:
-                    page_number = int(dat["URL"][:-4].split("_")[-1]) if dat["URL"][:-4].split("_")[-1] != "portada" else 0
-                except ValueError:
-                    page_number = dat["URL"][:-4].split("_")[-1]
+                from_chapter, to_chapter = map(int, chapter_ranges[chapter_name].split("-"))
 
                 if page_number == to_chapter:
                     chapter_index += 1
-                    chapter_read = False
 
-                try:
-                    if page_number < from_chapter:
-                        misc_data = []
-                        if dat.get("attachments", False):
-                            for dat_attachment in dat["attachments"]:
-                                if dat_attachment["type"] == "gallery":
-                                    for image in dat_attachment["images"]:
-                                        misc_data.append(image)
-                                else:
-                                    misc_data.append(dat_attachment["URL"])
+                if page_number < from_chapter:
+                    misc_data = []
+                    if dat.get("attachments", False):
+                        for dat_attachment in dat["attachments"]:
+                            if dat_attachment["type"] == "gallery":
+                                for image in dat_attachment["images"]:
+                                    misc_data.append(image)
+                            else:
+                                misc_data.append(dat_attachment["URL"])
 
-                        if {"path":dat["URL"], "misc": misc_data} not in book_data[book_content_type]["Fundamentals"]:
-                            book_data[book_content_type]["Fundamentals"].append({"path":dat["URL"], "misc": misc_data})
+                    if {"path":dat["URL"], "misc": misc_data} not in book_data[book_content_type]["Fundamentals"]:
+                        book_data[book_content_type]["Fundamentals"].append({"path":dat["URL"], "misc": misc_data})
 
-                    else:
-                        misc_data = []
-                        if dat.get("attachments", False):
-                            for dat_attachment in dat["attachments"]:
-                                if dat_attachment["type"] == "gallery":
-                                    for image in dat_attachment["images"]:
-                                        misc_data.append(image)
-                                else:
-                                    misc_data.append(dat_attachment["URL"])
+                else:
+                    misc_data = []
+                    if dat.get("attachments", False):
+                        for dat_attachment in dat["attachments"]:
+                            if dat_attachment["type"] == "gallery":
+                                for image in dat_attachment["images"]:
+                                    misc_data.append(image)
+                            else:
+                                misc_data.append(dat_attachment["URL"])
 
-                        if {"path":dat["URL"], "misc": misc_data} not in book_data[book_content_type][chapter_name]:
-                            book_data[book_content_type][chapter_name].append({"path":dat["URL"], "misc": misc_data})
+                    if {"path":dat["URL"], "misc": misc_data} not in book_data[book_content_type][chapter_name]:
+                        book_data[book_content_type][chapter_name].append({"path":dat["URL"], "misc": misc_data})
 
-                except TypeError:
-                    # import sys
-                    book_data[book_content_type][chapter_name].append({"path":dat["URL"], "misc": misc_data})
-                    # print(json.dumps(book_data, indent=4)) 
-                    # sys.exit()
-                
-        
+                if break_loop:
+                    break
+
+        # print(json.dumps(book_data, indent=4)) 
         sorted_book = {}
         
         try:
@@ -279,6 +283,10 @@ def create_book(book_code):
                     #copy media to folder where the pdfs chapter will be created
                     miscs = page["misc"]
                     page_number = page["path"][:-4].split("_")[-1]
+                    if page_number.lower() == "portada":
+                        page_number = 0
+                    elif isinstance(page_number, str):
+                        page_number = int(''.join(filter(str.isdigit, page_number)))
 
                     if miscs: # create dirs to every page that has materials available
                         # copy the materials to each folder page 
@@ -373,9 +381,8 @@ book_codes = find_config_js_numbers(directory)
 
 for book_code in book_codes:
     try:
-        create_book("1441/6078")
+        create_book(book_code)
 
     except Exception as e:
-        print(f"Error processing book_code {"1441/6078"}:")
+        print(f"Error processing book_code {book_code}:")
         traceback.print_exc()
-    break
