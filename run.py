@@ -10,7 +10,12 @@ import cv2
 import img2pdf
 from pathlib import Path
 from natsort import natsorted
+from tqdm import tqdm
 import sys
+import logging
+
+# Configure the logging to save to a file
+logging.basicConfig(filename='error_log.txt', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def get_config_book_data(book_path) -> dict:
@@ -116,7 +121,6 @@ def create_book(book_code):
                         contentsIn = contentOut["children"]
                         chapter_name = contentOut["text"]
                         
-                        # print(chapter_name)
                         if bookType not in ["Libro del Alumno", "Libro del Maestro", "Manuales generales primaria"]:
                             # Store the chapter range separately // Compatible with English Book not Spanish
                             chapter_ranges[bookType][chapter_name] = f'{contentsIn[0]["URL"][:-4].split("_")[-1]}-{contentsIn[-1]["URL"][:-4].split("_")[-1]}'
@@ -133,7 +137,6 @@ def create_book(book_code):
 
                                 if "URL" in contentsIn[0]:
                                     chapter_ranges[bookType][chapter_name] = contentsIn[0]["URL"][:-4].split("_")[-1]
-                                    # print(contentsIn[0]["children"][0]["URL"][:-4].split("_")[-1])
                                 else:
                                     chapter_ranges[bookType][chapter_name] = contentsIn[0]['children'][0]["URL"][:-4].split("_")[-1]
                                 
@@ -298,11 +301,11 @@ def create_book(book_code):
 
     sorted_book = {}
 
-    for book_type in ranges_chapters.keys():
+    for book_type in tqdm(ranges_chapters.keys(), desc="Book Type Progress: "):
         if book_type not in sorted_book:
             sorted_book[book_type] = {}
         full_pdf_images = []
-        for content in ranges_chapters[book_type].keys():
+        for content in tqdm(ranges_chapters[book_type].keys(), desc="Book Content Progress: "):
             if content not in sorted_book:
                 sorted_book[book_type][content] = []
             for url_misc in ranges_chapters[book_type][content]:
@@ -345,7 +348,7 @@ def create_book(book_code):
                                             tempMisc = misc.replace("_recortable", "-recortable")
                                             first_passed = True
                                             continue
-                                        print(book_code, "Failed copying file: ", tempMisc)
+                                        logging.error(f"Book Code: {book_code} Failed copying file: {tempMisc}")
                                         traceback.print_exc()
                                         filename, file_extension = os.path.splitext(misc)
                                         tempMisc = (filename + str(index) + file_extension)
@@ -365,7 +368,7 @@ def create_book(book_code):
                         # Load image using OpenCV
                         img = cv2.imread(img_path)
                         if img is None:
-                            print(f"Error loading image file: {img_path}")
+                            logging.warning(f"Error loading image file: {img_path}")
                             continue  # Skip this file if it can't be loaded
 
                         # Resize the image to fit letter size
@@ -377,10 +380,9 @@ def create_book(book_code):
                             images.append(img_encoded.tobytes())
                             full_pdf_images.append(img_encoded.tobytes())
                         else:
-                            print(f"Error encoding image file: {img_path}")
+                            logging.error(f"Book Code: {book_code} Error encoding image file: {img_path}")
                     except Exception as e:
-                        print(f"Error processing image file: {img_path}")
-                        print(f"Error details: {e}")
+                        logging.error(f"Book Code: {book_code} Error encoding image file: {img_path}")
                         continue  # Skip this file and continue with the next
 
                 if not output_pdf_content.exists():
@@ -389,16 +391,15 @@ def create_book(book_code):
                             f.write(img2pdf.convert(images))
                     else:
                         return output_pdf_content
-                    
-        print(book_code, ": ", f"PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
+        
+        logging.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
 
         if not output_pdf.exists(): # create full pdf
             with open(output_pdf, "wb") as f:
                 f.write(img2pdf.convert(full_pdf_images))
 
-    print(book_code, ": ",f"PDF {book_type} - {book_number} - {book_level} - Created successfully!")
+    logging.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
     return False
-
 
 
 def find_config_js_numbers(directory):
@@ -421,10 +422,10 @@ for book_code in book_codes:
     try:
         return_code = create_book(book_code)
         if return_code:
-            print(return_code, book_code, "There was an issue processing one of the images!")
+            logging.error(f"Path File: {return_code} Book Code: {book_code} There was an issue processing one of the images!")
             os.remove(return_code)
             break
 
     except Exception as e:
-        print(f"Error processing book_code {book_code}:")
+        logging.error(f"Error processing book_code {book_code}:")
         traceback.print_exc()
