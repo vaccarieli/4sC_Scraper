@@ -11,12 +11,17 @@ import img2pdf
 from pathlib import Path
 from natsort import natsorted
 from tqdm import tqdm
-import sys
 import logging
+import sys
+
+
+# Get the absolute path of the current file
+current_file_path = os.path.abspath(__file__)
+# Get the directory name of the current file path
+project_root = Path(os.path.dirname(current_file_path))
 
 # Configure the logging to save to a file
-logging.basicConfig(filename='error_log.txt', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
+logging.basicConfig(filename=project_root / 'error_log.txt', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_config_book_data(book_path) -> dict:
     # Read the JavaScript file
@@ -51,7 +56,7 @@ def get_book_level(config_book_data):
 
 
 def get_book_type(url_path):
-    with open(r"C:\Users\elios\Desktop\test.txt", "a", encoding="utf-8") as file:
+    with open(f"C:/Users/{os.getlogin()}/Desktop/test.txt", "a", encoding="utf-8") as file:
             
         if "html" not in url_path:
             if "sb_" in url_path:
@@ -423,9 +428,8 @@ for book_code in book_codes:
         return_code = create_book(book_code)
         if return_code:
             logging.error(f"Path File: {return_code} Book Code: {book_code} There was an issue processing one of the images!")
-            os.remove(return_code)
             break
 
     except Exception as e:
-        logging.error(f"Error processing book_code {book_code}:")
+        logging.error(f"Error processing Book Code: {book_code}")
         traceback.print_exc()
