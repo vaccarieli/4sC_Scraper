@@ -62,46 +62,52 @@ def get_book_level(config_book_data):
             elif "book" not in page["URL"]:
                 return page["URL"].split("_")[3].replace("nv", "Nivel "), page["URL"].split("_")[2].replace("trim", "Libro ")
             
-        else:
-            return page["URL"], page["URL"]
+        elif "_k" in page["URL"] and "_sb_" in page["URL"]: # Kinder English
+            return page["URL"].split("_")[2].replace("k", "Kinder "), page["URL"].split("_")[5].replace("book", "Book "), page["URL"]
         
-        # ffe_pre_k1_5.2ed_sb_book1_portada.jpg ffe_pre_k1_5.2ed_sb_book1_portada.jpg
-        # ffe_pre_k2_5.2ed_sb_book1_portada.jpg ffe_pre_k2_5.2ed_sb_book1_portada.jpg
-        # ffe_pre_k3_5.2ed_sb_book1_portada.jpg ffe_pre_k3_5.2ed_sb_book1_portada.jpg
-        # preef_k1_trim1_5rev_book_portada.jpg preef_k1_trim1_5rev_book_portada.jpg
-        # preef_k2_trim1_5rev_book_portada.jpg preef_k2_trim1_5rev_book_portada.jpg
-        # ffe_pre_k2_5.2ed_sb_book2_portada.jpg ffe_pre_k2_5.2ed_sb_book2_portada.jpg
-        # ffe_pre_k2_5.2ed_sb_book2_portada.jpg ffe_pre_k2_5.2ed_sb_book2_portada.jpg
-        # presef_5ed_la_k1_trim2_book_00_portada.jpg presef_5ed_la_k1_trim2_book_00_portada.jpg
-        # presef_5ed_la_k2_trim2_book_00_portada.jpg presef_5ed_la_k2_trim2_book_00_portada.jpg
-        # ffe_pre_k2_5.2ed_sb_book3_portada.jpg ffe_pre_k2_5.2ed_sb_book3_portada.jpg
-        # ffe_pre_k2_5.2ed_sb_book3_portada.jpg ffe_pre_k2_5.2ed_sb_book3_portada.jpg
-        # presef_5ed_la_k1_trim3_book_0_portada.jpg presef_5ed_la_k1_trim3_book_0_portada.jpg
-        # presef_5ed_la_k2_trim3_book_01_portada.jpg presef_5ed_la_k2_trim3_book_01_portada.jpg
+        elif "_k" in page["URL"] and "_la_" in page["URL"]: # Kinder Spanish
+            return page["URL"].split("_")[3].replace("k", "Kinder "), page["URL"].split("_")[4].replace("trim", "Libro "), page["URL"]
+        
+        elif "_k" in page["URL"] and "_5rev_" in page["URL"]: # Kinder Spanish
+            return page["URL"].split("_")[1].replace("k", "Kinder "), page["URL"].split("_")[2].replace("trim", "Libro "), page["URL"]
+        
 
 def get_book_type(url_path):
-    with open(f"C:/Users/{os.getlogin()}/Desktop/test.txt", "a", encoding="utf-8") as file:
             
-        if "html" not in url_path:
+    if "html" not in url_path:
+        if "k" not in url_path and "ffe_pre_" not in url_path and "preef_" not in url_path:
             if "sb_" in url_path:
-                file.write(f'{"Student's Book"} {url_path}\n')
                 return "Student's Book"
             
             elif "tn_" in url_path:
-                file.write(f'{"Teacher's Notes"} {url_path}\n')
                 return "Teacher's Notes"
             
             elif "_lm_" in url_path or "_app_ndm_" in url_path:
-                file.write(f'{"Libro del Maestro"} {url_path}\n')
                 return "Libro del Maestro"
             
             elif "_la_" in url_path or "_app_" in url_path and "secuencia" not in url_path:
-                file.write(f'{"Libro del Alumno"} {url_path}\n')
                 return "Libro del Alumno"
 
             else:
-                file.write(f'Manuales generales primaria {url_path}\n')
-                return "Manuales generales primaria"
+                return "Manuales generales primaria", url_path
+        else:
+            if "_sb_" in url_path:
+                return "Student's Material"
+            
+            elif "teachers-notes" in url_path:
+                return "Teacher's Notes"
+            
+            elif "_ndm_trim" in url_path and "_book_" in url_path:
+                return "Libro del Maestro"
+            
+            elif "_trim" in url_path and "_book_" in url_path:
+                return "Libro del Alumno"
+
+            elif "ffe_pre_" in url_path:
+                return "Resources"
+            
+            else:
+                return "Extras"
 
 
 def create_book(book_code):
@@ -113,11 +119,7 @@ def create_book(book_code):
     config_book_data = get_config_book_data(book_path)
 
     book_level, book_number = get_book_level(config_book_data)
-
-    print(book_level, book_number)
-
-    return
-    # parse config book data
+    
     school_level = config_book_data["type"].capitalize()
 
     book_level_path = output_path / school_level / book_number / book_level
@@ -152,7 +154,7 @@ def create_book(book_code):
                         contentsIn = contentOut["children"]
                         chapter_name = contentOut["text"]
                         
-                        if bookType not in ["Libro del Alumno", "Libro del Maestro", "Manuales generales primaria"]:
+                        if bookType not in ["Libro del Alumno", "Libro del Maestro", "Manuales generales primaria", ""]:
                             # Store the chapter range separately // Compatible with English Book not Spanish
                             chapter_ranges[bookType][chapter_name] = f'{contentsIn[0]["URL"][:-4].split("_")[-1]}-{contentsIn[-1]["URL"][:-4].split("_")[-1]}'
                             # Initialize each chapter with an empty list in book_data
