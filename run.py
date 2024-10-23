@@ -381,7 +381,7 @@ def create_book(book_code):
                         # Load image using OpenCV
                         img = cv2.imread(img_path)
                         if img is None:
-                            logger.warning(f"Error loading image file: {img_path}")
+                            logger.warning(f"Book Code: {book_code} Error loading image file: {img_path}")
                             continue  # Skip this file if it can't be loaded
 
                         # Resize the image to fit letter size
@@ -402,19 +402,17 @@ def create_book(book_code):
                     if abs(len(images) - len(sorted_book[book_type][content])) < 3:
                         with open(output_pdf_content, "wb") as f:
                             f.write(img2pdf.convert(images))
+                        logger.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
                     else:
                         return output_pdf_content
-
-        
-        logger.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
 
         if not output_pdf.exists(): # create full pdf
             with open(output_pdf, "wb") as f:
                 f.write(img2pdf.convert(full_pdf_images))
+            logger.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
 
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    logger.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
     return False
 
 
