@@ -46,7 +46,7 @@ def get_config_book_data(book_path) -> dict:
 
 def get_book_level(config_book_data):
     for page in config_book_data["pages"]:
-        if "sb_" in page["URL"] or "_la_" in page["URL"] or "_app_" in page["URL"]:
+        if ("sb_" in page["URL"] or "_la_" in page["URL"] or "_app_" in page["URL"]) and "_k" not in page["URL"]:
             if "_lv" in page["URL"] and "_book" in page["URL"]:
                 return page["URL"].split("_")[2].replace("lv", "Level "), page["URL"].split("_")[3].replace("book", "Book ")
 
@@ -62,7 +62,22 @@ def get_book_level(config_book_data):
             elif "book" not in page["URL"]:
                 return page["URL"].split("_")[3].replace("nv", "Nivel "), page["URL"].split("_")[2].replace("trim", "Libro ")
             
-
+        else:
+            return page["URL"], page["URL"]
+        
+        # ffe_pre_k1_5.2ed_sb_book1_portada.jpg ffe_pre_k1_5.2ed_sb_book1_portada.jpg
+        # ffe_pre_k2_5.2ed_sb_book1_portada.jpg ffe_pre_k2_5.2ed_sb_book1_portada.jpg
+        # ffe_pre_k3_5.2ed_sb_book1_portada.jpg ffe_pre_k3_5.2ed_sb_book1_portada.jpg
+        # preef_k1_trim1_5rev_book_portada.jpg preef_k1_trim1_5rev_book_portada.jpg
+        # preef_k2_trim1_5rev_book_portada.jpg preef_k2_trim1_5rev_book_portada.jpg
+        # ffe_pre_k2_5.2ed_sb_book2_portada.jpg ffe_pre_k2_5.2ed_sb_book2_portada.jpg
+        # ffe_pre_k2_5.2ed_sb_book2_portada.jpg ffe_pre_k2_5.2ed_sb_book2_portada.jpg
+        # presef_5ed_la_k1_trim2_book_00_portada.jpg presef_5ed_la_k1_trim2_book_00_portada.jpg
+        # presef_5ed_la_k2_trim2_book_00_portada.jpg presef_5ed_la_k2_trim2_book_00_portada.jpg
+        # ffe_pre_k2_5.2ed_sb_book3_portada.jpg ffe_pre_k2_5.2ed_sb_book3_portada.jpg
+        # ffe_pre_k2_5.2ed_sb_book3_portada.jpg ffe_pre_k2_5.2ed_sb_book3_portada.jpg
+        # presef_5ed_la_k1_trim3_book_0_portada.jpg presef_5ed_la_k1_trim3_book_0_portada.jpg
+        # presef_5ed_la_k2_trim3_book_01_portada.jpg presef_5ed_la_k2_trim3_book_01_portada.jpg
 
 def get_book_type(url_path):
     with open(f"C:/Users/{os.getlogin()}/Desktop/test.txt", "a", encoding="utf-8") as file:
@@ -89,7 +104,6 @@ def get_book_type(url_path):
                 return "Manuales generales primaria"
 
 
-
 def create_book(book_code):
     book_data = {}
     chapter_ranges = {}
@@ -100,6 +114,9 @@ def create_book(book_code):
 
     book_level, book_number = get_book_level(config_book_data)
 
+    print(book_level, book_number)
+
+    return
     # parse config book data
     school_level = config_book_data["type"].capitalize()
 
