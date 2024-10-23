@@ -20,8 +20,17 @@ current_file_path = os.path.abspath(__file__)
 # Get the directory name of the current file path
 project_root = Path(os.path.dirname(current_file_path))
 
-# Configure the logging to save to a file
-logging.basicConfig(filename=project_root / 'error_log.txt', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure the logger
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler(project_root / "app.log"),
+                        logging.StreamHandler()
+                    ])
+
+# Create a logger object
+logger = logging.getLogger(__name__)
+
 
 def get_config_book_data(book_path) -> dict:
     # Read the JavaScript file
@@ -303,14 +312,13 @@ def create_book(book_code):
             if not "portada" in ranges_chapters[key][subKey][0]["URL"]:
                 ranges_chapters[key][subKey] = natsorted(ranges_chapters[key][subKey], key=lambda x: x['URL'])
 
-
     sorted_book = {}
 
-    for book_type in tqdm(ranges_chapters.keys(), desc="Book Type Progress: "):
+    for book_type in ranges_chapters.keys():
         if book_type not in sorted_book:
             sorted_book[book_type] = {}
         full_pdf_images = []
-        for content in tqdm(ranges_chapters[book_type].keys(), desc="Book Content Progress: "):
+        for content in tqdm(ranges_chapters[book_type].keys(), desc=f"{book_code} - {book_number} - {book_level}: "):
             if content not in sorted_book:
                 sorted_book[book_type][content] = []
             for url_misc in ranges_chapters[book_type][content]:
@@ -353,7 +361,7 @@ def create_book(book_code):
                                             tempMisc = misc.replace("_recortable", "-recortable")
                                             first_passed = True
                                             continue
-                                        logging.error(f"Book Code: {book_code} Failed copying file: {tempMisc}")
+                                        logger.error(f"Book Code: {book_code} Failed copying file: {tempMisc}")
                                         traceback.print_exc()
                                         filename, file_extension = os.path.splitext(misc)
                                         tempMisc = (filename + str(index) + file_extension)
@@ -373,7 +381,7 @@ def create_book(book_code):
                         # Load image using OpenCV
                         img = cv2.imread(img_path)
                         if img is None:
-                            logging.warning(f"Error loading image file: {img_path}")
+                            logger.warning(f"Error loading image file: {img_path}")
                             continue  # Skip this file if it can't be loaded
 
                         # Resize the image to fit letter size
@@ -385,9 +393,9 @@ def create_book(book_code):
                             images.append(img_encoded.tobytes())
                             full_pdf_images.append(img_encoded.tobytes())
                         else:
-                            logging.error(f"Book Code: {book_code} Error encoding image file: {img_path}")
+                            logger.error(f"Book Code: {book_code} Error encoding image file: {img_path}")
                     except Exception as e:
-                        logging.error(f"Book Code: {book_code} Error encoding image file: {img_path}")
+                        logger.error(f"Book Code: {book_code} Error encoding image file: {img_path}")
                         continue  # Skip this file and continue with the next
 
                 if not output_pdf_content.exists():
@@ -396,14 +404,17 @@ def create_book(book_code):
                             f.write(img2pdf.convert(images))
                     else:
                         return output_pdf_content
+
         
-        logging.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
+        logger.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
 
         if not output_pdf.exists(): # create full pdf
             with open(output_pdf, "wb") as f:
                 f.write(img2pdf.convert(full_pdf_images))
 
-    logging.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+    logger.info(f"{book_code}: PDF {book_type} - {book_number} - {book_level} - {content} - Created successfully!")
     return False
 
 
@@ -427,9 +438,9 @@ for book_code in book_codes:
     try:
         return_code = create_book(book_code)
         if return_code:
-            logging.error(f"Path File: {return_code} Book Code: {book_code} There was an issue processing one of the images!")
+            logger.error(f"Path File: {return_code} Book Code: {book_code} There was an issue processing one of the images!")
             break
 
     except Exception as e:
-        logging.error(f"Error processing Book Code: {book_code}")
+        logger.error(f"Error processing Book Code: {book_code}")
         traceback.print_exc()
